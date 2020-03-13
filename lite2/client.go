@@ -544,15 +544,32 @@ func (c *Client) verifyHeader(newHeader *types.SignedHeader, newVals *types.Vali
 			panic(fmt.Sprintf("Unknown verification mode: %b", c.verificationMode))
 		}
 	} else {
-		// 2) Otherwise, perform backwards verification
-		// Find the closest trusted header after newHeader.Height
-		var closestHeader *types.SignedHeader
-		closestHeader, err = c.trustedStore.SignedHeaderAfter(newHeader.Height)
+		var firstHeaderHeight int64
+		firstHeaderHeight, err = c.FirstTrustedHeight()
 		if err != nil {
-			return errors.Wrapf(err, "can't get signed header after height %d", newHeader.Height)
+			return err
 		}
-
-		err = c.backwards(closestHeader, newHeader, now)
+		var closestHeader *types.SignedHeader
+		if newHeader.Height < firstHeaderHeight {
+			c.logger.Info("Using backwards")
+			closestHeader, err = c.TrustedHeader(firstHeaderHeight)
+			if err != nil {
+				return errors.Wrapf(err, "can't get signed header after height %d", newHeader.Height)
+			}
+			err = c.backwards(closestHeader, newHeader, now)
+			//if err != nil { return err }
+		} else {
+			closestHeader, err = c.trustedStore.SignedHeaderBefore(newHeader.Height)
+			if err != nil {
+				return errors.Wrapf(err, "can't get signed header before height %d", newHeader.Height)
+			}
+			var closestValidatorSet *types.ValidatorSet
+			closestValidatorSet, _, err = c.TrustedValidatorSet(closestHeader.Height)
+			if err != nil {
+				return errors.Wrapf(err, "can't get validator set at height %d", closestHeader.Height)
+			}
+			err = c.bisection(closestHeader, closestValidatorSet, newHeader, newVals, now)
+		}
 	}
 	if err != nil {
 		c.logger.Error("Can't verify", "err", err)
@@ -653,6 +670,9 @@ func (c *Client) bisection(
 
 		trustedHeader = initiallyTrustedHeader
 		trustedVals   = initiallyTrustedVals
+
+		interimHeader = newHeader
+		interimVals   = newVals
 	)
 
 	for {
@@ -837,6 +857,7 @@ func (c *Client) backwards(
 	now time.Time) error {
 
 	if HeaderExpired(initiallyTrustedHeader, c.trustingPeriod, now) {
+		c.logger.Info("Header Expired")
 		return ErrOldHeaderExpired{initiallyTrustedHeader.Time.Add(c.trustingPeriod), now}
 	}
 
@@ -851,7 +872,11 @@ func (c *Client) backwards(
 		if err != nil {
 			return errors.Wrapf(err, "failed to obtain the header at height #%d", trustedHeader.Height-1)
 		}
-
+		c.logger.Debug("Verify newHeader against trustedHeader",
+			"trustedHeight", trustedHeader.Height,
+			"trustedHash", hash2str(trustedHeader.Hash()),
+			"newHeight", interimHeader.Height,
+			"newHash", hash2str(interimHeader.Hash()))
 		if err := VerifyBackwards(c.chainID, interimHeader, trustedHeader); err != nil {
 			c.logger.Error("primary sent invalid header -> replacing", "err", err)
 			if replaceErr := c.replacePrimaryProvider(); replaceErr != nil {

@@ -728,8 +728,8 @@ func TestClient_BackwardsVerification(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// 3) trusted header has expired => expect error
-		_, err = c.VerifyHeaderAtHeight(1, bTime.Add(4*time.Hour).Add(1*time.Second))
+		// 4) trusted header has expired => expect error
+		_, err = c.VerifyHeaderAtHeight(1, bTime.Add(10*time.Hour).Add(1*time.Second))
 		assert.Error(t, err)
 	}
 	{

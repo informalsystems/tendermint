@@ -80,15 +80,15 @@ func Test_SignedHeaderAfter(t *testing.T) {
 	dbStore := New(dbm.NewMemDB(), "Test_SignedHeaderAfter")
 
 	assert.Panics(t, func() {
-		dbStore.SignedHeaderAfter(0)
-		dbStore.SignedHeaderAfter(100)
+		_, _ = dbStore.SignedHeaderBefore(0)
+		_, _ = dbStore.SignedHeaderBefore(100)
 	})
 
 	err := dbStore.SaveSignedHeaderAndValidatorSet(
 		&types.SignedHeader{Header: &types.Header{Height: 2}}, &types.ValidatorSet{})
 	require.NoError(t, err)
 
-	h, err := dbStore.SignedHeaderAfter(1)
+	h, err := dbStore.SignedHeaderBefore(3)
 	require.NoError(t, err)
 	if assert.NotNil(t, h) {
 		assert.EqualValues(t, 2, h.Height)
