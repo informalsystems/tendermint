@@ -729,7 +729,7 @@ func TestClient_BackwardsVerification(t *testing.T) {
 		require.NoError(t, err)
 
 		// 4) trusted header has expired => expect error
-		_, err = c.VerifyHeaderAtHeight(1, bTime.Add(10*time.Hour).Add(1*time.Second))
+		_, err = c.VerifyHeaderAtHeight(1, bTime.Add(4*time.Hour))
 		assert.Error(t, err)
 	}
 	{
@@ -737,7 +737,7 @@ func TestClient_BackwardsVerification(t *testing.T) {
 			provider provider.Provider
 		}{
 			{
-				// provides incorrect height
+				// 5) provides incorrect height
 				mockp.New(
 					chainID,
 					map[int64]*types.SignedHeader{
@@ -750,7 +750,7 @@ func TestClient_BackwardsVerification(t *testing.T) {
 				),
 			},
 			{
-				// provides incorrect hash
+				// 6) provides incorrect hash
 				mockp.New(
 					chainID,
 					map[int64]*types.SignedHeader{
@@ -782,6 +782,33 @@ func TestClient_BackwardsVerification(t *testing.T) {
 			_, err = c.VerifyHeaderAtHeight(2, bTime.Add(1*time.Hour).Add(1*time.Second))
 			assert.Error(t, err)
 		}
+	}
+	{
+		trustHeader, _ := largeFullNode.SignedHeader(1)
+		c, err := NewClient(
+			chainID,
+			TrustOptions{
+				Period: 1 * time.Hour,
+				Height: 1,
+				Hash:   trustHeader.Hash(),
+			},
+			largeFullNode,
+			[]provider.Provider{largeFullNode},
+			dbs.New(dbm.NewMemDB(), chainID),
+			Logger(log.TestingLogger()),
+		)
+		require.NoError(t, err)
+
+		_, err = c.VerifyHeaderAtHeight(10, bTime.Add(10*time.Minute))
+		require.NoError(t, err)
+
+		// 7) Verify backwards using bisection
+		_, err = c.VerifyHeaderAtHeight(5, bTime.Add(10*time.Minute))
+		assert.NoError(t, err)
+		// shouldn't have verified this header in the process
+		_, err = c.TrustedHeader(7)
+		assert.Error(t, err)
+
 	}
 }
 
