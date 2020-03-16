@@ -214,7 +214,7 @@ func (s *dbs) SignedHeaderBefore(height int64) (*types.SignedHeader, error) {
 
 	itr, err := s.db.ReverseIterator(
 		nil,
-		s.shKey(height-1),
+		s.shKey(height),
 	)
 	if err != nil {
 		panic(err)

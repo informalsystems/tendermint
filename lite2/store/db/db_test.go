@@ -76,7 +76,7 @@ func Test_SaveSignedHeaderAndValidatorSet(t *testing.T) {
 	assert.Nil(t, valSet)
 }
 
-func Test_SignedHeaderAfter(t *testing.T) {
+func Test_SignedHeaderBefore(t *testing.T) {
 	dbStore := New(dbm.NewMemDB(), "Test_SignedHeaderAfter")
 
 	assert.Panics(t, func() {
