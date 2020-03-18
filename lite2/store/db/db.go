@@ -203,8 +203,8 @@ func (s *dbs) FirstSignedHeaderHeight() (int64, error) {
 	return -1, nil
 }
 
-// SignedHeaderAfter iterates over headers until it finds a header after one at
-// height. It returns ErrSignedHeaderNotFound if no such header exists.
+// SignedHeaderBefore iterates over headers until it finds a header before
+// the given height. It returns ErrSignedHeaderNotFound if no such header exists.
 //
 // Safe for concurrent use by multiple goroutines.
 func (s *dbs) SignedHeaderBefore(height int64) (*types.SignedHeader, error) {

@@ -41,7 +41,7 @@ type Store interface {
 	// If the store is empty, -1 and nil error are returned.
 	FirstSignedHeaderHeight() (int64, error)
 
-	// SignedHeaderAfter returns the SignedHeader after the certain height.
+	// SignedHeaderBefore returns the SignedHeader before a certain height.
 	//
 	// height must be > 0 && <= LastSignedHeaderHeight.
 	SignedHeaderBefore(height int64) (*types.SignedHeader, error)

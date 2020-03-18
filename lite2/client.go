@@ -547,26 +547,32 @@ func (c *Client) verifyHeader(newHeader *types.SignedHeader, newVals *types.Vali
 		var firstHeaderHeight int64
 		firstHeaderHeight, err = c.FirstTrustedHeight()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "can't get sig")
 		}
 		var closestHeader *types.SignedHeader
 		if newHeader.Height < firstHeaderHeight {
-			c.logger.Info("Using backwards")
 			closestHeader, err = c.TrustedHeader(firstHeaderHeight)
 			if err != nil {
 				return errors.Wrapf(err, "can't get signed header after height %d", newHeader.Height)
 			}
+			if HeaderExpired(closestHeader, c.trustingPeriod, now) {
+				closestHeader = c.latestTrustedHeader
+			}
 			err = c.backwards(closestHeader, newHeader, now)
-			//if err != nil { return err }
 		} else {
 			closestHeader, err = c.trustedStore.SignedHeaderBefore(newHeader.Height)
 			if err != nil {
 				return errors.Wrapf(err, "can't get signed header before height %d", newHeader.Height)
 			}
 			var closestValidatorSet *types.ValidatorSet
-			closestValidatorSet, _, err = c.TrustedValidatorSet(closestHeader.Height)
-			if err != nil {
-				return errors.Wrapf(err, "can't get validator set at height %d", closestHeader.Height)
+			if HeaderExpired(closestHeader, c.trustingPeriod, now) {
+				closestHeader = c.latestTrustedHeader
+				closestValidatorSet = c.latestTrustedVals
+			} else {
+				closestValidatorSet, _, err = c.TrustedValidatorSet(closestHeader.Height)
+				if err != nil {
+					return errors.Wrapf(err, "can't get validator set at height %d", closestHeader.Height)
+				}
 			}
 			err = c.bisection(closestHeader, closestValidatorSet, newHeader, newVals, now)
 		}
