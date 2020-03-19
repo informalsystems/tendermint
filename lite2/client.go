@@ -572,8 +572,8 @@ func (c *Client) verifyHeader(newHeader *types.SignedHeader, newVals *types.Vali
 				if err != nil {
 					return errors.Wrapf(err, "can't get validator set at height %d", closestHeader.Height)
 				}
+				err = c.bisection(closestHeader, closestValidatorSet, newHeader, newVals, now)
 			}
-			err = c.bisection(closestHeader, closestValidatorSet, newHeader, newVals, now)
 		}
 	}
 	if err != nil {
