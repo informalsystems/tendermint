@@ -252,6 +252,7 @@ message ResponseOfferSnapshot {
       unknown        = 0;   // Unknown or generic reason
       invalid_height = 1;   // Height is rejected: avoid this height
       invalid_format = 2;   // Format is rejected: avoid this format
+      internal_error = 3;   // Something went wrong (should really use ResponseException)
   }
 }
 
@@ -263,9 +264,10 @@ message ResponseApplySnapshotChunk {
   bool   applied = 1;
   Reason reason  = 2;
 
-  enum Reason {           // Reason why chunk failed
-      unknown       = 0;  // Unknown or generic reason
-      verify_failed = 1;  // Chunk verification failed
+  enum Reason {            // Reason why chunk failed
+      unknown        = 0;  // Unknown or generic reason
+      verify_failed  = 1;  // Chunk verification failed
+      internal_error = 2;  // Something went wrong (should really use ResponseException)
   }
 }
 
