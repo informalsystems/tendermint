@@ -675,9 +675,6 @@ func (c *Client) bisection(
 
 		trustedHeader = initiallyTrustedHeader
 		trustedVals   = initiallyTrustedVals
-
-		interimHeader = newHeader
-		interimVals   = newVals
 	)
 
 	for {
@@ -787,14 +784,14 @@ func (c *Client) Cleanup() error {
 // cleanupAfter deletes all headers & validator sets after +height+. It also
 // resets latestTrustedHeader to the latest header.
 func (c *Client) cleanupAfter(height int64) error {
-	nextHeight := height
+	prevHeight := c.latestTrustedHeader.Height
 
 	for {
-		h, err := c.trustedStore.SignedHeaderAfter(nextHeight)
-		if err == store.ErrSignedHeaderNotFound {
+		h, err := c.trustedStore.SignedHeaderBefore(prevHeight)
+		if err == store.ErrSignedHeaderNotFound || (h != nil && h.Height <= height) {
 			break
 		} else if err != nil {
-			return errors.Wrapf(err, "failed to get header after %d", nextHeight)
+			return errors.Wrapf(err, "failed to get header before %d", prevHeight)
 		}
 
 		err = c.trustedStore.DeleteSignedHeaderAndValidatorSet(h.Height)
@@ -803,7 +800,7 @@ func (c *Client) cleanupAfter(height int64) error {
 				"height", h.Height)
 		}
 
-		nextHeight = h.Height
+		prevHeight = h.Height
 	}
 
 	c.latestTrustedHeader = nil
