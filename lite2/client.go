@@ -565,7 +565,7 @@ func (c *Client) verifyHeader(newHeader *types.SignedHeader, newVals *types.Vali
 				return errors.Wrapf(err, "can't get signed header before height %d", newHeader.Height)
 			}
 			var closestValidatorSet *types.ValidatorSet
-			if HeaderExpired(closestHeader, c.trustingPeriod, now) {
+			if c.verificationMode == sequential || HeaderExpired(closestHeader, c.trustingPeriod, now) {
 				err = c.backwards(c.latestTrustedHeader, newHeader, now)
 			} else {
 				closestValidatorSet, _, err = c.TrustedValidatorSet(closestHeader.Height)
